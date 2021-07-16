@@ -1,0 +1,79 @@
+Instance Information: amazon linux ami 
+Family: General purpose
+Type: t2.micro
+vCPUs: 1
+Memory(GiB): 1
+Instance Storage(GB): 30GB
+
+
+Environment of master instance and slave instances:
+export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.242.b08-0.amzn2.0.1.x86_64
+export HADOOP_HOME=/home/ec2-user/hadoop
+export PATH=${PATH}:${JAVA_HOME}/bin
+export HADOOP_CLASSPATH=${JAVA_HOME}/lib/tools.jar
+export PATH=$PATH:$HADOOP_HOME/bin
+export OOZIE_HOME=/home/ec2-user/oozie/distro/target/oozie-4.3.0-distro/oozie-4.3.0
+export PATH=$PATH:$OOZIE_HOME/bin
+
+
+Local: Windows Operation System
+User use FileZilla to manage instances and files
+
+
+Commmands:
+
+1. Create a folder named input in $HADOOP_HOME:
+$ mkdir input
+
+2. Upload the entire data set to the input directory /home/ec2-user/hadoop/input - done using fileZilla.
+
+3. Start Hadoop Cluster and historyserver:
+$ cd $HADOOP_HOME
+$ hdfs namenode -format
+$ sbin/start-all.sh
+$ sbin/mr-jobhistory-daemon.sh start historyserver
+
+4. Upload input file to HDFS:
+$ hdfs dfs -mkdir -p input
+$ hdfs dfs -put input/* input
+
+5. Upload oozie's share file to HDFS:
+$ cd $OOZIE_HOME
+$ sudo tar xvf oozie-sharelib-4.3.0.tar.gz #change the sharelib name to your local sharelib name
+$ cd $HADOOP_HOME
+$ hdfs dfs -put $OOZIE_HOME/share share
+
+6. Upload workflow.xml to HDFS:
+$ hdfs dfs -mkdir BDproject
+$ hdfs dfs -put workflow.xml BDproject
+
+7. Compile the java files and make a jar file and upload the jar file to HDFS BDproject/lib:
+$ jar cf BDproject.jar *.class
+$ hdfs dfs -mkdir BDproject/lib
+$ hdfs dfs -put BDproject.jar BDproject/lib
+
+8. Initialize the database of oozie:
+$ $OOZIE_HOME/bin/ooziedb.sh create -sqlfile oozie.sql -run
+
+9. Start oozie:
+$ $OOZIE_HOME/bin/oozied.sh start
+
+10. Check the status of oozie, if shows System mode: NORMAL, do next step:
+$ $OOZIE_HOME/bin/oozie admin -oozie http://localhost:11000/oozie -status
+
+11: Run the program:
+$ oozie job -oozie http://localhost:11000/oozie -config job.properties -run
+
+12. Get results:
+$ hdfs dfs -get BDproject/output output
+
+13. See the result:
+$ vim output/OnScheduleAirlines/part-r-00000
+Exit:
+:q!
+$ vim output/AirportsTaxiTime/part-r-00000
+Exit:
+:q!
+$ vim output/Cancellations/part-r-00000
+Exit:
+:q!
